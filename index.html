@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devine le Nombre</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse-animation {
+            animation: pulse 1.5s infinite;
+        }
+        .flip-in {
+            animation: flipIn 0.6s ease-out;
+        }
+        @keyframes flipIn {
+            0% { transform: rotateX(90deg); opacity: 0; }
+            100% { transform: rotateX(0deg); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-900 to-purple-900 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden border border-white/20">
+        <!-- Header -->
+        <div class="bg-white/10 py-6 px-6 text-center">
+            <h1 class="text-3xl font-bold text-white mb-2">Devine le Nombre</h1>
+            <p class="text-white/80">Trouvez le nombre mystère entre 1 et 100</p>
+        </div>
+        
+        <!-- Game Area -->
+        <div class="p-6">
+            <!-- Input Section -->
+            <div class="flex mb-6 gap-2">
+                <input type="number" id="guessInput" 
+                    class="flex-1 px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent" 
+                    placeholder="Entrez un nombre..." min="1" max="100">
+                <button id="submitGuess" 
+                    class="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-all duration-300 flex items-center justify-center">
+                    <i class="fas fa-paper-plane mr-2"></i> Essayer
+                </button>
+            </div>
+            
+            <!-- Feedback Section -->
+            <div id="feedback" class="hidden mb-6 p-4 rounded-lg bg-white/10 text-white text-center flip-in">
+                <p id="feedbackText" class="text-lg"></p>
+                <p id="attempts" class="text-sm mt-1 text-white/70">Essais: 0</p>
+            </div>
+            
+            <!-- Previous Guesses -->
+            <div id="previousGuesses" class="hidden">
+                <h3 class="text-white/80 text-sm font-medium mb-2">Vos tentatives:</h3>
+                <div id="guessesList" class="flex flex-wrap gap-2"></div>
+            </div>
+            
+            <!-- Restart Button -->
+            <button id="restartBtn" 
+                class="hidden w-full mt-6 bg-white/10 text-white px-6 py-3 rounded-lg font-medium hover:bg-white/20 transition-all duration-300 border border-white/20 flex items-center justify-center">
+                <i class="fas fa-redo mr-2"></i> Rejouer
+            </button>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="bg-black/20 p-4 text-white/80 text-sm">
+            <div class="flex items-center mb-2">
+                <i class="fas fa-info-circle mr-2 text-purple-300"></i>
+                <span>Comment jouer:</span>
+            </div>
+            <ul class="list-disc pl-5 space-y-1">
+                <li>Entrez un nombre entre 1 et 100</li>
+                <li>Cliquez sur "Essayer" ou appuyez sur Entrée</li>
+                <li>Le jeu vous indiquera si le nombre est plus grand ou plus petit</li>
+                <li>Trouvez le nombre en le moins d'essais possible!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Game variables
+            let secretNumber = Math.floor(Math.random() * 100) + 1;
+            let attempts = 0;
+            let gameOver = false;
+            
+            // DOM elements
+            const guessInput = document.getElementById('guessInput');
+            const submitGuess = document.getElementById('submitGuess');
+            const feedback = document.getElementById('feedback');
+            const feedbackText = document.getElementById('feedbackText');
+            const attemptsText = document.getElementById('attempts');
+            const previousGuesses = document.getElementById('previousGuesses');
+            const guessesList = document.getElementById('guessesList');
+            const restartBtn = document.getElementById('restartBtn');
+            
+            // Focus input on load
+            guessInput.focus();
+            
+            // Submit guess on button click
+            submitGuess.addEventListener('click', checkGuess);
+            
+            // Submit guess on Enter key
+            guessInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    checkGuess();
+                }
+            });
+            
+            // Restart game
+            restartBtn.addEventListener('click', restartGame);
+            
+            function checkGuess() {
+                if (gameOver) return;
+                
+                const userGuess = parseInt(guessInput.value);
+                
+                // Validate input
+                if (isNaN(userGuess) || userGuess < 1 || userGuess > 100) {
+                    showFeedback("Veuillez entrer un nombre entre 1 et 100", "text-yellow-300");
+                    guessInput.value = '';
+                    guessInput.focus();
+                    return;
+                }
+                
+                attempts++;
+                attemptsText.textContent = `Essais: ${attempts}`;
+                
+                // Add guess to history
+                addGuessToHistory(userGuess);
+                
+                // Check if guess is correct
+                if (userGuess === secretNumber) {
+                    gameOver = true;
+                    showFeedback(`Bravo! Vous avez trouvé en ${attempts} essais!`, "text-green-400");
+                    submitGuess.classList.add('hidden');
+                    restartBtn.classList.remove('hidden');
+                    restartBtn.classList.add('pulse-animation');
+                    guessInput.disabled = true;
+                } 
+                // Give hint if wrong
+                else if (userGuess < secretNumber) {
+                    showFeedback("C'est plus grand!", "text-blue-300");
+                } 
+                else {
+                    showFeedback("C'est plus petit!", "text-pink-300");
+                }
+                
+                // Clear input and focus
+                guessInput.value = '';
+                guessInput.focus();
+            }
+            
+            function showFeedback(message, colorClass) {
+                feedbackText.textContent = message;
+                feedbackText.className = `text-lg ${colorClass}`;
+                feedback.classList.remove('hidden');
+                feedback.classList.add('flip-in');
+                
+                // Remove animation class after animation completes
+                setTimeout(() => {
+                    feedback.classList.remove('flip-in');
+                }, 600);
+            }
+            
+            function addGuessToHistory(guess) {
+                previousGuesses.classList.remove('hidden');
+                
+                const guessElement = document.createElement('div');
+                guessElement.className = 'px-3 py-2 rounded-full text-xs font-medium';
+                
+                if (guess === secretNumber) {
+                    guessElement.className += ' bg-gradient-to-r from-green-500 to-emerald-500 text-white';
+                } else if (guess < secretNumber) {
+                    guessElement.className += ' bg-blue-500/20 text-blue-300 border border-blue-500/30';
+                } else {
+                    guessElement.className += ' bg-pink-500/20 text-pink-300 border border-pink-500/30';
+                }
+                
+                guessElement.textContent = guess;
+                guessesList.appendChild(guessElement);
+                
+                // Scroll to bottom of guesses list
+                guessesList.scrollLeft = guessesList.scrollWidth;
+            }
+            
+            function restartGame() {
+                // Reset game variables
+                secretNumber = Math.floor(Math.random() * 100) + 1;
+                attempts = 0;
+                gameOver = false;
+                
+                // Reset UI
+                feedback.classList.add('hidden');
+                previousGuesses.classList.add('hidden');
+                guessesList.innerHTML = '';
+                submitGuess.classList.remove('hidden');
+                restartBtn.classList.add('hidden');
+                restartBtn.classList.remove('pulse-animation');
+                guessInput.disabled = false;
+                guessInput.value = '';
+                guessInput.focus();
+            }
+        });
+    </script>
+</body>
+</html>
